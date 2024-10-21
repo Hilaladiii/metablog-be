@@ -23,7 +23,7 @@ model Write{
   userId String
   postId String
   user User @relation(fields: [userId],references: [id])  
-  post Post @relation(fields: [postId],references: [id]) 
+  post Post @relation(fields: [postId],references: [id], onDelete: Cascade) 
 
   @@map("writes")
 }
@@ -31,7 +31,7 @@ model Write{
 model Post{
   id String @id @default(uuid())
   title String
-  content String
+  content String @db.Text()
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt  
 
