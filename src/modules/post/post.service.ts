@@ -6,6 +6,10 @@ import { Post } from '@prisma/client';
 export class PostService {
   constructor(private prismaService: PrismaService) {}
 
+  async get(): Promise<Post[]> {
+    return await this.prismaService.post.findMany();
+  }
+
   async create(
     title: string,
     content: string,
@@ -36,6 +40,18 @@ export class PostService {
 
   async delete(id: string): Promise<void> {
     await this.prismaService.post.delete({
+      where: {
+        id,
+      },
+    });
+  }
+
+  async update(id: string, title: string, content: string): Promise<Post> {
+    return await this.prismaService.post.update({
+      data: {
+        title,
+        content,
+      },
       where: {
         id,
       },
