@@ -6,3 +6,47 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
+model User{
+  id String @id @default(uuid())
+  email String @unique
+  username String @unique @db.VarChar(100)
+  password String @db.VarChar(100)
+  token String?  
+  write Write[]
+
+  @@map("users")
+}
+
+model Write{
+  id String @id @default(uuid())
+  userId String
+  postId String
+  user User @relation(fields: [userId],references: [id])  
+  post Post @relation(fields: [postId],references: [id]) 
+
+  @@map("writes")
+}
+
+model Post{
+  id String @id @default(uuid())
+  title String
+  content String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt  
+
+  categoryId Int
+  category Category @relation(fields: [categoryId],references: [id])    
+  write Write[]
+
+  @@map("posts")
+}
+
+model Category{
+  id Int @id @default(autoincrement())
+  title String
+
+  Posts Post[]
+
+  @@map("categories")
+}
