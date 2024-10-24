@@ -7,12 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ROLE{
+  READER
+  WRITER
+}
+
 model User{
   id String @id @default(uuid())
   email String @unique
   username String @unique @db.VarChar(100)
   password String @db.VarChar(100)
   token String?  
+  role ROLE @default(READER)
   write Write[]
 
   @@map("users")
