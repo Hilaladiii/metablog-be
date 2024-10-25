@@ -93,11 +93,11 @@ export class AuthService {
       where: { id: userId },
     });
     if (!user.token) throw new ForbiddenException();
-    const tokens = await this.getTokens(userId, user.username, user.role);
-    const isValid = await argon2.verify(user.token, token);
 
+    const isValid = await argon2.verify(user.token, token);
     if (!isValid) throw new UnauthorizedException();
 
+    const tokens = await this.getTokens(userId, user.username, user.role);
     await this.updateRefreshToken(userId, tokens.refreshToken);
 
     return tokens;
