@@ -3,7 +3,6 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
-  Post,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -20,7 +19,6 @@ export class AuthService {
     private prismaService: PrismaService,
   ) {}
 
-  @Post()
   async login(data: AuthDto) {
     const user = await this.prismaService.user.findUnique({
       where: {
