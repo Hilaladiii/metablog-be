@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
-import * as bcryptjs from 'bcryptjs';
+import * as argon2 from 'argon2';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { IUser } from 'src/modules/user/interfaces/user.interface';
 import { User } from '@prisma/client';
@@ -16,7 +16,7 @@ export class UserService {
     password: string,
     role: ROLE,
   ): Promise<IUser> {
-    const hashPassword = await bcryptjs.hash(password, 10);
+    const hashPassword = await argon2.hash(password);
     return await this.prismaService.user.create({
       data: {
         email,
@@ -74,7 +74,7 @@ export class UserService {
       token?: string;
     } = {};
     if (updateUserDto.password) {
-      dataToUpdate.password = await bcryptjs.hash(updateUserDto.password, 10);
+      dataToUpdate.password = await argon2.hash(updateUserDto.password);
     }
 
     if (updateUserDto.username) {

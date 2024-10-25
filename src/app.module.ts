@@ -6,7 +6,6 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { RoleGuard } from './common/guards/role.guard';
-import { TokenModule } from './providers/token/token.module';
 
 @Module({
   imports: [
@@ -17,7 +16,6 @@ import { TokenModule } from './providers/token/token.module';
     UserModule,
     PostModule,
     AuthModule,
-    TokenModule,
   ],
   providers: [
     {

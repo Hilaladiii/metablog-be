@@ -1,15 +1,20 @@
-import { HttpException, HttpStatus, Injectable, Post } from '@nestjs/common';
-import { UserService } from '../user/user.service';
+import {
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Post,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthDto } from './dto/auth.dto';
-import * as bcryptjs from 'bcryptjs';
+import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private userService: UserService,
     private jwtService: JwtService,
     private configService: ConfigService,
     private prismaService: PrismaService,
@@ -17,15 +22,16 @@ export class AuthService {
 
   @Post()
   async login(data: AuthDto) {
-    const user = await this.userService.findByUsername(data.username);
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        username: data.username,
+      },
+    });
 
     if (!user)
       throw new HttpException('User does not exist', HttpStatus.BAD_REQUEST);
 
-    const isPasswordValid = await bcryptjs.compare(
-      data.password,
-      user.password,
-    );
+    const isPasswordValid = await argon2.verify(user.password, data.password);
 
     if (!isPasswordValid)
       throw new HttpException(
@@ -34,15 +40,19 @@ export class AuthService {
       );
 
     const token = await this.getTokens(user.id, user.username, user.role);
-    console.log(token.refreshToken);
     await this.updateRefreshToken(user.id, token.refreshToken);
     return token;
   }
 
   async updateRefreshToken(userId: string, refreshToken: string) {
-    const hashedRefreshToken = await bcryptjs.hash(refreshToken, 10);
-    await this.userService.update(userId, {
-      refreshToken: hashedRefreshToken,
+    const hashedRefreshToken = await argon2.hash(refreshToken);
+    await this.prismaService.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        token: hashedRefreshToken,
+      },
     });
   }
 
@@ -57,7 +67,7 @@ export class AuthService {
         },
         {
           secret: this.configService.get('JWT_SECRET'),
-          expiresIn: '15m',
+          expiresIn: '5m',
         },
       ),
       this.jwtService.signAsync(
@@ -84,23 +94,18 @@ export class AuthService {
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
     });
-    if (!user || !user.token)
-      throw new HttpException('Invalid user or token', HttpStatus.FORBIDDEN);
-
-    const isTokenValid = await bcryptjs.compare(token, user.token);
-    console.log(isTokenValid);
-
-    if (!isTokenValid)
-      throw new HttpException('Invalid token', HttpStatus.FORBIDDEN);
-
+    if (!user.token) throw new ForbiddenException();
     const tokens = await this.getTokens(userId, user.username, user.role);
+    const isValid = await argon2.verify(user.token, token);
+
+    if (!isValid) throw new UnauthorizedException();
+
     await this.updateRefreshToken(userId, tokens.refreshToken);
 
     return tokens;
   }
 
   async logout(userId: string) {
-    await this.userService.update(userId, { refreshToken: null });
     await this.prismaService.user.update({
       where: {
         id: userId,
