@@ -10,8 +10,5 @@ export class CreatePostDto {
   content: string;
 
   @IsNotEmpty()
-  userId: string;
-
-  @IsNotEmpty()
   categoryId: number;
 }

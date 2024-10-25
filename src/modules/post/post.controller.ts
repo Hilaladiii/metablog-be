@@ -3,7 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  Headers,
   Param,
   Post,
   Put,
@@ -17,6 +16,8 @@ import { AccessTokenGuard } from 'src/common/guards/access-token.guard';
 import { Message } from 'src/common/decorators/message.decorator';
 import { Role } from '../../common/decorators/role.decorator';
 import { ROLE } from 'src/common/constants/constants';
+import { Request } from 'express';
+import { JwtPayload } from 'src/common/types/jwt.type';
 
 @Controller('post')
 export class PostController {
@@ -29,15 +30,23 @@ export class PostController {
     return await this.postService.get();
   }
 
+  @Get(':id')
+  @Message('Success get post by id')
+  @UseGuards(AccessTokenGuard)
+  async getById(@Param('id') id: string) {
+    return await this.postService.getById(id);
+  }
+
   @Post('create')
   @Role(ROLE.WRITER)
   @Message('Success create post')
   @UseGuards(AccessTokenGuard)
-  async create(@Body() createPostDto: CreatePostDto, @Headers() headers) {
+  async create(@Body() createPostDto: CreatePostDto, @Req() request: Request) {
+    const userId = request.user as JwtPayload;
     const post = await this.postService.create(
       createPostDto.title,
       createPostDto.content,
-      headers.user,
+      userId.sub,
       createPostDto.categoryId,
     );
     return {

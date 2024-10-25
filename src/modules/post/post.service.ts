@@ -10,6 +10,10 @@ export class PostService {
     return await this.prismaService.post.findMany();
   }
 
+  async getById(id: string): Promise<Post> {
+    return await this.prismaService.post.findUnique({ where: { id } });
+  }
+
   async create(
     title: string,
     content: string,
