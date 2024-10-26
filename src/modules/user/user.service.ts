@@ -5,10 +5,14 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { IUser } from 'src/modules/user/interfaces/user.interface';
 import { User } from '@prisma/client';
 import { ROLE } from 'src/common/constants/constants';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class UserService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private redisService: RedisService,
+  ) {}
 
   async create(
     email: string,
@@ -34,6 +38,9 @@ export class UserService {
   }
 
   async find(): Promise<IUser[]> {
+    const cachedUser = await this.redisService.get<IUser[]>('users');
+    if (cachedUser) return cachedUser;
+
     const user = await this.prismaService.user.findMany({
       select: {
         id: true,
@@ -42,11 +49,15 @@ export class UserService {
         role: true,
       },
     });
+
+    await this.redisService.set<IUser[]>('users', user, 60 * 5);
     return user;
   }
 
   async findById(id: string): Promise<IUser> {
-    return await this.prismaService.user.findUnique({
+    const cachedUserDetail = await this.redisService.get<IUser>(`user_${id}`);
+    if (cachedUserDetail) return cachedUserDetail;
+    const userDetail = await this.prismaService.user.findUnique({
       where: {
         id,
       },
@@ -57,6 +68,8 @@ export class UserService {
         role: true,
       },
     });
+
+    await this.redisService.set(`user_${id}`, userDetail, 60 * 60);
   }
 
   async findByUsername(username: string): Promise<User> {

@@ -1,17 +1,34 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Post } from '@prisma/client';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class PostService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private redisService: RedisService,
+  ) {}
 
   async get(): Promise<Post[]> {
-    return await this.prismaService.post.findMany();
+    const cachedPost = await this.redisService.get<Post[]>('posts');
+    if (cachedPost) return cachedPost;
+
+    const posts = await this.prismaService.post.findMany();
+    await this.redisService.set('posts', posts, 60 * 5);
+
+    return posts;
   }
 
   async getById(id: string): Promise<Post> {
-    return await this.prismaService.post.findUnique({ where: { id } });
+    const cachedPostDetail = await this.redisService.get<Post>(`post_${id}`);
+    if (cachedPostDetail) return cachedPostDetail;
+
+    const postDetail = await this.prismaService.post.findUnique({
+      where: { id },
+    });
+    await this.redisService.set<Post>(`post_${id}`, postDetail, 60 * 60);
+    return postDetail;
   }
 
   async create(

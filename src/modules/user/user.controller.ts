@@ -50,7 +50,6 @@ export class UserController {
   async findById(@Param('id') id: string): Promise<IUser> {
     const user = await this.userService.findById(id);
     if (!user) throw new HttpException('User not found!', HttpStatus.NOT_FOUND);
-
     return user;
   }
 }
